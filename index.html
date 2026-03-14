@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EPUB 簡轉繁工具 (無伺服器版)</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6; }
+        .container { border: 2px dashed #ccc; padding: 30px; text-align: center; border-radius: 10px; }
+        #status { margin-top: 20px; color: #666; }
+        progress { width: 100%; height: 20px; display: none; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:disabled { background: #ccc; }
+    </style>
+</head>
+<body>
+    <h2>EPUB 繁體轉換器</h2>
+    <p>完全在瀏覽器本地端運作，檔案不會上傳至任何伺服器。</p>
+    
+    <div class="container">
+        <input type="file" id="fileInput" accept=".epub">
+        <br><br>
+        <button id="convertBtn" disabled>正在初始化 Python 環境...</button>
+        <div id="status">準備中...</div>
+        <progress id="progressBar" value="0" max="100"></progress>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const convertBtn = document.getElementById('convertBtn');
+        const status = document.getElementById('status');
+        const progressBar = document.getElementById('progressBar');
+
+        // 建立 Web Worker
+        const worker = new Worker(URL.createObjectURL(new Blob([`
+            importScripts("https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js");
+
+	    const pythonCode = \`
+import zipfile
+import io
+import os
+import tempfile
+from opencc import OpenCC
+
+def process():
+    cc = OpenCC('s2t')
+    input_data = epub_bytes.to_py()
+    output_buffer = io.BytesIO()
+    
+    with zipfile.ZipFile(io.BytesIO(input_data), 'r') as zin:
+        with zipfile.ZipFile(output_buffer, 'w', zipfile.ZIP_DEFLATED) as zout:
+            for item in zin.infolist():
+                content = zin.read(item.filename)
+                # 只針對文字相關檔案進行轉換
+                if item.filename.endswith(('.html', '.xhtml', '.opf', '.ncx', '.txt')):
+                    try:
+                        text = content.decode('utf-8')
+                        converted = cc.convert(text)
+                        zout.writestr(item.filename, converted.encode('utf-8'))
+                    except:
+                        zout.writestr(item.filename, content)
+                else:
+                    zout.writestr(item.filename, content)
+    
+    return output_buffer.getvalue()
+
+process()
+	    \`;
+
+            let pyodide;
+            async function initPyodide() {
+                pyodide = await loadPyodide();
+                await pyodide.loadPackage("micropip");
+                const micropip = pyodide.pyimport("micropip");
+                await micropip.install("opencc-python-reimplemented");
+                self.postMessage({ type: 'READY' });
+            }
+
+            self.onmessage = async (e) => {
+                if (e.data.type === 'CONVERT') {
+                    const { fileArrayBuffer, fileName } = e.data;
+                    
+                    try {
+                        // 將 ArrayBuffer 轉為 Python 可讀的 bytes
+                        self.postMessage({ type: 'STATUS', msg: 'Python 正在處理中...' });
+                        
+                        pyodide.globals.set("epub_bytes", fileArrayBuffer);
+                        
+                        const pyProxy = await pyodide.runPythonAsync(pythonCode);
+			const finalData = pyProxy.toJs();
+			pyProxy.destroy();
+			const outputBytes = new Blob([finalData], { type: 'application/epub+zip' });
+                        self.postMessage({ type: 'DOWNLOAD', data: outputBytes, name: fileName.replace('.epub', '_繁體.epub') });
+                    } catch (err) {
+                        self.postMessage({ type: 'ERROR', msg: err.toString() });
+                    }
+                }
+            };
+
+            initPyodide();
+        `], { type: 'text/javascript' })));
+
+        worker.onmessage = (e) => {
+            const { type, msg, data, name } = e.data;
+            if (type === 'READY') {
+                convertBtn.disabled = false;
+                convertBtn.textContent = '開始轉換';
+                status.textContent = '環境就緒，請選擇檔案';
+            } else if (type === 'STATUS') {
+                status.textContent = msg;
+            } else if (type === 'DOWNLOAD') {
+                const blob = new Blob([data], { type: 'application/epub+zip' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = name;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                status.textContent = '轉換完成！已自動下載。';
+                progressBar.style.display = 'none';
+                convertBtn.disabled = false;
+            } else if (type === 'ERROR') {
+                status.textContent = '錯誤: ' + msg;
+                convertBtn.disabled = false;
+            }
+        };
+
+        convertBtn.onclick = async () => {
+            if (!fileInput.files[0]) return alert('請先選擇檔案');
+            
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            
+            convertBtn.disabled = true;
+            status.textContent = '讀取檔案中...';
+            progressBar.style.display = 'block';
+
+            reader.onload = (e) => {
+                worker.postMessage({
+                    type: 'CONVERT',
+                    fileArrayBuffer: e.target.result,
+                    fileName: file.name
+                });
+            };
+            reader.readAsArrayBuffer(file);
+        };
+    </script>
+</body>
+</html>
