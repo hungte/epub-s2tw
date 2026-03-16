@@ -11,11 +11,14 @@
         progress { width: 100%; height: 20px; display: none; }
         button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
         button:disabled { background: #ccc; }
+	.copyright { text-align: right; font-style: italic; }
     </style>
 </head>
 <body>
     <h2>EPUB 繁體轉換器</h2>
-    <p>完全在瀏覽器本地端運作，檔案不會上傳至任何伺服器。</p>
+    <p>完全在瀏覽器本地端運作，檔案不會上傳至任何伺服器。不信可以按右鍵看網頁原始碼。</p>
+    <p>第一次打開本頁要載入環境，大約一分鐘（看網路速度跟電腦速度）。
+       請耐心等待按鈕變成藍色「開始轉換」。</p>
     
     <div class="container">
         <input type="file" id="fileInput" accept=".epub">
@@ -173,5 +176,9 @@ process()
             reader.readAsArrayBuffer(file);
         };
     </script>
+    <p class='copyright'>
+     Created by: <a href="mailto:hungte@gmail.com">Hung-Te Lin</a>,
+     powered by Gemini (2026).
+    </p>
 </body>
 </html>
