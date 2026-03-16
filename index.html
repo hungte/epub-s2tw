@@ -2,16 +2,19 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#007bff">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EPUB 簡轉繁工具 (無伺服器版)</title>
     <style>
-        body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6; }
-        .container { border: 2px dashed #ccc; padding: 30px; text-align: center; border-radius: 10px; }
-        #status { margin-top: 20px; color: #666; }
-        progress { width: 100%; height: 20px; display: none; }
-        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        button:disabled { background: #ccc; }
-        .copyright { text-align: right; font-style: italic; }
+
+	body { font-family: -apple-system, sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; width: 90%; max-width: 400px; }
+        h1 { font-size: 1.5rem; color: #333; }
+        #status { color: #666; font-size: 0.9rem; margin: 1rem 0; }
+        .btn { background: #007bff; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 1rem; transition: 0.3s; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+        .copyright { text-align: right; font-style: italic; font-size: 0.8rem;}
     </style>
     <!-- Python script should not be executed by web pages. -->
     <script type='text/python' id='epub_s2tw'>
@@ -75,7 +78,7 @@ process()
         importScripts("https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js");
 
         let pyodide;
-        async function initPyodide() {
+        async function init() {
             pyodide = await loadPyodide();
             await pyodide.loadPackage("micropip");
             const micropip = pyodide.pyimport("micropip");
@@ -89,7 +92,7 @@ process()
 
                 try {
                     // 將 ArrayBuffer 轉為 Python 可讀的 bytes
-                    self.postMessage({ type: 'STATUS', msg: 'Python 正在處理中...' });
+                    self.postMessage({ type: 'STATUS', msg: '正在處理中...' });
 
                     pyodide.globals.set("epub_bytes", fileArrayBuffer);
                     pyodide.globals.set("epub_v2h", v2h);
@@ -98,43 +101,43 @@ process()
                     const finalData = pyProxy.toJs();
                     pyProxy.destroy();
                     const outputBytes = new Blob([finalData], { type: 'application/epub+zip' });
-                    self.postMessage({ type: 'DOWNLOAD', data: outputBytes, name: fileName.replace('.epub', '_繁體.epub') });
+                    self.postMessage({ type: 'DONE', data: outputBytes, name: fileName });
                 } catch (err) {
                     self.postMessage({ type: 'ERROR', msg: err.toString() });
                 }
             }
         };
 
-        initPyodide();
+        init();
     </script>
 </head>
 
 <body>
-    <h2>EPUB 繁體轉換器</h2>
-    <p>完全在瀏覽器本地端運作，檔案不會上傳至任何伺服器。不信可以按右鍵看網頁原始碼。</p>
-    <p>第一次打開本頁要載入環境，大約一分鐘（看網路速度跟電腦速度）。
-       請耐心等待按鈕變成藍色「開始轉換」。</p>
-
-    <div class="container">
-        <input type="file" id="fileInput" accept=".epub">
-        <br><br>
-        <button id="convertBtn" disabled>正在初始化 Python 環境...</button>
-        <div id="status">準備中...</div>
-        <progress id="progressBar" value="0" max="100"></progress>
-        <br/>
-        <input type="checkbox" id="chkV2H"/><label for="chkV2H">直書轉橫書</label>
+    <div class="card">
+        <h1>EPUB 簡轉繁</h1>
+        <p>無伺服器，檔案僅在本地處理。</p>
+        <div id="status">正在載入 Python 引擎...(初次需1-3分鐘)</div>
+        <input type="file" id="fileInput" accept=".epub" style="display:none">
+        <button class="btn" id="mainBtn" disabled>請稍候</button>
+        <p>
+            <input type="checkbox" id="chkV2H"/><label for="chkV2H">直書轉橫書</label>
+        </p>
+        <p class='copyright'>
+         Created by: <a href="mailto:hungte@gmail.com">Hung-Te Lin</a>.<br/>
+         Source: github <a href="http://github.com/hungte/epub-s2tw/">hungte/epub-s2tw</a>.<br/>
+        </p>
     </div>
-    <p class='copyright'>
-     Created by: <a href="mailto:hungte@gmail.com">Hung-Te Lin</a> (2026),
-     powered by Gemini and GitHub Pages.<br/>
-     Source in <a href="http://github.com/hungte/epub-s2tw/">github:hungte/epub-s2tw</a>.
-    </p>
+
 
     <script type='text/javascript'>
-        const fileInput = document.getElementById('fileInput');
-        const convertBtn = document.getElementById('convertBtn');
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+
+        const mainBtn = document.getElementById('mainBtn');
         const status = document.getElementById('status');
-        const progressBar = document.getElementById('progressBar');
+        const fileInput = document.getElementById('fileInput');
 
         // 建立 Web Worker
         const worker = new Worker(URL.createObjectURL(new Blob([
@@ -142,41 +145,39 @@ process()
             { type: 'text/javascript' })));
 
         worker.onmessage = (e) => {
-            const { type, msg, data, name } = e.data;
+            const type = e.data.type;
             if (type === 'READY') {
-                convertBtn.disabled = false;
-                convertBtn.textContent = '開始轉換';
-                status.textContent = '環境就緒，請選擇檔案';
-            } else if (type === 'STATUS') {
-                status.textContent = msg;
-            } else if (type === 'DOWNLOAD') {
-                const blob = new Blob([data], { type: 'application/epub+zip' });
+                status.textContent = "準備就緒";
+                mainBtn.disabled = false;
+                mainBtn.textContent = "選擇 EPUB 檔案";
+            } else if (type === 'DONE') {
+                const blob = new Blob([e.data.data], {type: 'application/epub+zip'});
                 const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
+                let a = document.createElement('a');
                 a.href = url;
-                a.download = name;
-                document.body.appendChild(a);
+                a.download = e.data.name.replace('.epub', '_繁體.epub');
                 a.click();
-                document.body.removeChild(a);
-                status.textContent = '轉換完成！已自動下載。';
-                progressBar.style.display = 'none';
-                convertBtn.disabled = false;
+                status.textContent = "轉換完成！已自動下載";
+                mainBtn.disabled = false;
+                a = null;
+                URL.revokeObjectURL(url);
+            } else if (type === 'STATUS') {
+                status.textContent = e.data.msg;
+                mainBtn.disabled = true;
             } else if (type === 'ERROR') {
-                status.textContent = '錯誤: ' + msg;
-                convertBtn.disabled = false;
+                status.textContent = '錯誤: ' + e.data.msg;
+                mainBtn.disabled = false;
             }
         };
 
-        convertBtn.onclick = async () => {
-            if (!fileInput.files[0]) return alert('請先選擇檔案');
-
-            const file = fileInput.files[0];
+        mainBtn.onclick = () => fileInput.click();
+        fileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file)
+                return;
+            mainBtn.disabled = true;
+            status.textContent = '正在轉換，請勿關閉視窗...';
             const reader = new FileReader();
-
-            convertBtn.disabled = true;
-            status.textContent = '讀取檔案中...';
-            progressBar.style.display = 'block';
-
             reader.onload = (e) => {
                 worker.postMessage({
                     type: 'CONVERT',
@@ -191,3 +192,5 @@ process()
     </script>
 </body>
 </html>
+<!-- vim:et:sw=4
+  -->
