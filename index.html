@@ -11,36 +11,11 @@
         progress { width: 100%; height: 20px; display: none; }
         button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
         button:disabled { background: #ccc; }
-	.copyright { text-align: right; font-style: italic; }
+        .copyright { text-align: right; font-style: italic; }
     </style>
-</head>
-<body>
-    <h2>EPUB 繁體轉換器</h2>
-    <p>完全在瀏覽器本地端運作，檔案不會上傳至任何伺服器。不信可以按右鍵看網頁原始碼。</p>
-    <p>第一次打開本頁要載入環境，大約一分鐘（看網路速度跟電腦速度）。
-       請耐心等待按鈕變成藍色「開始轉換」。</p>
-    
-    <div class="container">
-        <input type="file" id="fileInput" accept=".epub">
-        <br><br>
-        <button id="convertBtn" disabled>正在初始化 Python 環境...</button>
-        <div id="status">準備中...</div>
-        <progress id="progressBar" value="0" max="100"></progress>
-        <br/>
-        <input type="checkbox" id="chkV2H"/><label for="chkV2H">直書轉橫書</label>
-    </div>
+    <!-- Python script should not be executed by web pages. -->
+    <script type='text/python' id='epub_s2tw'>
 
-    <script>
-        const fileInput = document.getElementById('fileInput');
-        const convertBtn = document.getElementById('convertBtn');
-        const status = document.getElementById('status');
-        const progressBar = document.getElementById('progressBar');
-
-        // 建立 Web Worker
-        const worker = new Worker(URL.createObjectURL(new Blob([`
-            importScripts("https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js");
-
-            const pythonCode = \`
 import zipfile
 import io
 import os
@@ -48,10 +23,11 @@ import re
 import tempfile
 from opencc import OpenCC
 
+# Imported variables: epub_v2h, epub_bytes
 
-# Failed to quote with \\s properly and not sure why.
-CSS_PATTERN = re.compile(r'[-a-z]*writing-mode: *vertical-rl *;')
-OPF_PATTERN = re.compile(r'page-progression-direction *= *"rtl"')
+CSS_PATTERN = re.compile(r'[-a-z]*writing-mode:\s*vertical-rl\s*;')
+OPF_PATTERN = re.compile(r'page-progression-direction\s*=\s*"rtl"')
+CONVERT_EXTS = ('.html', '.xhtml', '.opf', '.ncx', '.txt', '.css')
 V2H = epub_v2h
 print('V2H: ', V2H);
 
@@ -74,13 +50,12 @@ def process():
     cc = OpenCC('s2t')
     input_data = epub_bytes.to_py()
     output_buffer = io.BytesIO()
-    
+
     with zipfile.ZipFile(io.BytesIO(input_data), 'r') as zin:
         with zipfile.ZipFile(output_buffer, 'w', zipfile.ZIP_DEFLATED) as zout:
             for item in zin.infolist():
                 content = zin.read(item.filename)
-                # 只針對文字相關檔案進行轉換
-                if item.filename.endswith(('.html', '.xhtml', '.opf', '.ncx', '.txt', '.css')):
+                if item.filename.endswith(CONVERT_EXTS):
                     try:
                         text = content.decode('utf-8')
                         converted = convert(text, item.filename)
@@ -89,45 +64,82 @@ def process():
                     except:
                         pass
                 zout.writestr(item.filename, content)
-    
+
     return output_buffer.getvalue()
 
 process()
-            \`;
+    </script>
 
-            let pyodide;
-            async function initPyodide() {
-                pyodide = await loadPyodide();
-                await pyodide.loadPackage("micropip");
-                const micropip = pyodide.pyimport("micropip");
-                await micropip.install("opencc-python-reimplemented");
-                self.postMessage({ type: 'READY' });
-            }
+    <!-- worker script that should not be executed when loading. -->
+    <script id='worker_script' type='text/worker-script'>
+        importScripts("https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js");
 
-            self.onmessage = async (e) => {
-                if (e.data.type === 'CONVERT') {
-                    const { fileArrayBuffer, fileName, v2h } = e.data;
-                    
-                    try {
-                        // 將 ArrayBuffer 轉為 Python 可讀的 bytes
-                        self.postMessage({ type: 'STATUS', msg: 'Python 正在處理中...' });
-                        
-                        pyodide.globals.set("epub_bytes", fileArrayBuffer);
-                        pyodide.globals.set("epub_v2h", v2h);
-                        
-                        const pyProxy = await pyodide.runPythonAsync(pythonCode);
-                        const finalData = pyProxy.toJs();
-                        pyProxy.destroy();
-                        const outputBytes = new Blob([finalData], { type: 'application/epub+zip' });
-                        self.postMessage({ type: 'DOWNLOAD', data: outputBytes, name: fileName.replace('.epub', '_繁體.epub') });
-                    } catch (err) {
-                        self.postMessage({ type: 'ERROR', msg: err.toString() });
-                    }
+        let pyodide;
+        async function initPyodide() {
+            pyodide = await loadPyodide();
+            await pyodide.loadPackage("micropip");
+            const micropip = pyodide.pyimport("micropip");
+            await micropip.install("opencc-python-reimplemented");
+            self.postMessage({ type: 'READY' });
+        }
+
+        self.onmessage = async (e) => {
+            if (e.data.type === 'CONVERT') {
+                const { fileArrayBuffer, fileName, v2h, pythonCode } = e.data;
+
+                try {
+                    // 將 ArrayBuffer 轉為 Python 可讀的 bytes
+                    self.postMessage({ type: 'STATUS', msg: 'Python 正在處理中...' });
+
+                    pyodide.globals.set("epub_bytes", fileArrayBuffer);
+                    pyodide.globals.set("epub_v2h", v2h);
+
+                    const pyProxy = await pyodide.runPythonAsync(pythonCode);
+                    const finalData = pyProxy.toJs();
+                    pyProxy.destroy();
+                    const outputBytes = new Blob([finalData], { type: 'application/epub+zip' });
+                    self.postMessage({ type: 'DOWNLOAD', data: outputBytes, name: fileName.replace('.epub', '_繁體.epub') });
+                } catch (err) {
+                    self.postMessage({ type: 'ERROR', msg: err.toString() });
                 }
-            };
+            }
+        };
 
-            initPyodide();
-        `], { type: 'text/javascript' })));
+        initPyodide();
+    </script>
+</head>
+
+<body>
+    <h2>EPUB 繁體轉換器</h2>
+    <p>完全在瀏覽器本地端運作，檔案不會上傳至任何伺服器。不信可以按右鍵看網頁原始碼。</p>
+    <p>第一次打開本頁要載入環境，大約一分鐘（看網路速度跟電腦速度）。
+       請耐心等待按鈕變成藍色「開始轉換」。</p>
+
+    <div class="container">
+        <input type="file" id="fileInput" accept=".epub">
+        <br><br>
+        <button id="convertBtn" disabled>正在初始化 Python 環境...</button>
+        <div id="status">準備中...</div>
+        <progress id="progressBar" value="0" max="100"></progress>
+        <br/>
+        <input type="checkbox" id="chkV2H"/><label for="chkV2H">直書轉橫書</label>
+    </div>
+    <p class='copyright'>
+     Created by: <a href="mailto:hungte@gmail.com">Hung-Te Lin</a> (2026),
+     powered by Gemini and GitHub Pages.<br/>
+     Source in <a href="http://github.com/hungte/epub-s2tw/">github:hungte/epub-s2tw</a>.
+    </p>
+
+    <script type='text/javascript'>
+        const fileInput = document.getElementById('fileInput');
+        const convertBtn = document.getElementById('convertBtn');
+        const status = document.getElementById('status');
+        const progressBar = document.getElementById('progressBar');
+
+        // 建立 Web Worker
+        const worker = new Worker(URL.createObjectURL(new Blob([
+            document.getElementById('worker_script').textContent],
+            { type: 'text/javascript' })));
 
         worker.onmessage = (e) => {
             const { type, msg, data, name } = e.data;
@@ -157,10 +169,10 @@ process()
 
         convertBtn.onclick = async () => {
             if (!fileInput.files[0]) return alert('請先選擇檔案');
-            
+
             const file = fileInput.files[0];
             const reader = new FileReader();
-            
+
             convertBtn.disabled = true;
             status.textContent = '讀取檔案中...';
             progressBar.style.display = 'block';
@@ -171,14 +183,11 @@ process()
                     fileArrayBuffer: e.target.result,
                     fileName: file.name,
                     v2h: document.getElementById('chkV2H').checked,
+                    pythonCode: document.getElementById('epub_s2tw').textContent,
                 });
             };
             reader.readAsArrayBuffer(file);
         };
     </script>
-    <p class='copyright'>
-     Created by: <a href="mailto:hungte@gmail.com">Hung-Te Lin</a>,
-     powered by Gemini (2026).
-    </p>
 </body>
 </html>
