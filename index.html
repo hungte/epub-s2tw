@@ -23,6 +23,8 @@
         <button id="convertBtn" disabled>正在初始化 Python 環境...</button>
         <div id="status">準備中...</div>
         <progress id="progressBar" value="0" max="100"></progress>
+        <br/>
+        <input type="checkbox" id="chkV2H"/><label for="chkV2H">直書轉橫書</label>
     </div>
 
     <script>
@@ -35,12 +37,35 @@
         const worker = new Worker(URL.createObjectURL(new Blob([`
             importScripts("https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js");
 
-	    const pythonCode = \`
+            const pythonCode = \`
 import zipfile
 import io
 import os
+import re
 import tempfile
 from opencc import OpenCC
+
+
+# Failed to quote with \\s properly and not sure why.
+CSS_PATTERN = re.compile(r'[-a-z]*writing-mode: *vertical-rl *;')
+OPF_PATTERN = re.compile(r'page-progression-direction *= *"rtl"')
+V2H = epub_v2h
+print('V2H: ', V2H);
+
+
+def convert_css(s):
+    if not V2H:
+        return s
+    return CSS_PATTERN.sub('', s)
+
+
+def convert(s, name):
+    if name.endswith('.css'):
+        return convert_css(s)
+    if V2H and name.endswith('.opf'):
+        s = OPF_PATTERN.sub('', s)
+    return cc.convert(s)
+
 
 def process():
     cc = OpenCC('s2t')
@@ -52,20 +77,20 @@ def process():
             for item in zin.infolist():
                 content = zin.read(item.filename)
                 # 只針對文字相關檔案進行轉換
-                if item.filename.endswith(('.html', '.xhtml', '.opf', '.ncx', '.txt')):
+                if item.filename.endswith(('.html', '.xhtml', '.opf', '.ncx', '.txt', '.css')):
                     try:
                         text = content.decode('utf-8')
-                        converted = cc.convert(text)
+                        converted = convert(text, item.filename)
                         zout.writestr(item.filename, converted.encode('utf-8'))
+                        continue
                     except:
-                        zout.writestr(item.filename, content)
-                else:
-                    zout.writestr(item.filename, content)
+                        pass
+                zout.writestr(item.filename, content)
     
     return output_buffer.getvalue()
 
 process()
-	    \`;
+            \`;
 
             let pyodide;
             async function initPyodide() {
@@ -78,18 +103,19 @@ process()
 
             self.onmessage = async (e) => {
                 if (e.data.type === 'CONVERT') {
-                    const { fileArrayBuffer, fileName } = e.data;
+                    const { fileArrayBuffer, fileName, v2h } = e.data;
                     
                     try {
                         // 將 ArrayBuffer 轉為 Python 可讀的 bytes
                         self.postMessage({ type: 'STATUS', msg: 'Python 正在處理中...' });
                         
                         pyodide.globals.set("epub_bytes", fileArrayBuffer);
+                        pyodide.globals.set("epub_v2h", v2h);
                         
                         const pyProxy = await pyodide.runPythonAsync(pythonCode);
-			const finalData = pyProxy.toJs();
-			pyProxy.destroy();
-			const outputBytes = new Blob([finalData], { type: 'application/epub+zip' });
+                        const finalData = pyProxy.toJs();
+                        pyProxy.destroy();
+                        const outputBytes = new Blob([finalData], { type: 'application/epub+zip' });
                         self.postMessage({ type: 'DOWNLOAD', data: outputBytes, name: fileName.replace('.epub', '_繁體.epub') });
                     } catch (err) {
                         self.postMessage({ type: 'ERROR', msg: err.toString() });
@@ -140,7 +166,8 @@ process()
                 worker.postMessage({
                     type: 'CONVERT',
                     fileArrayBuffer: e.target.result,
-                    fileName: file.name
+                    fileName: file.name,
+                    v2h: document.getElementById('chkV2H').checked,
                 });
             };
             reader.readAsArrayBuffer(file);

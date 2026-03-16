@@ -4,6 +4,7 @@
 # Author: Hung-Te Lin <hungte@gmail.com>
 
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -14,6 +15,23 @@ from opencc import OpenCC
 # Change this to different locales if you need.
 CC = OpenCC('s2tw')
 
+CSS_PATTERN = re.compile(r'[-a-z]*writing-mode:\s*vertical-rl\s*;');
+OPF_PATTERN = re.compile(r'page-progression-direction\s*=\s*"rtl"');
+V2H = False # vertical to horizontal
+
+
+def convert_css(s):
+    if not V2H:
+        return s
+    return CSS_PATTERN.sub('', s)
+
+
+def convert(s, name):
+    if name.suffix == '.css':
+        return convert_css(s)
+    if V2H and name.suffix == '.opf':
+        s = OPF_PATTERN.sub('', s)
+    return CC.convert(s)
 
 def convert_file(path):
     # Enable this for extra debug messages
@@ -21,7 +39,7 @@ def convert_file(path):
     with open(path) as f:
         src = f.read()
     with open(path, 'w') as f:
-        f.write(CC.convert(src))
+        f.write(convert(src, path))
 
 
 def convert_files(folder, exts):
@@ -38,7 +56,7 @@ def convert_epub(epub_path, temp):
     shutil.unpack_archive(path, temp, 'zip')
 
     print(f'Converting {path}...')
-    convert_files(temp, ['.opf', '.ncx', '.xhtml', '.html'])
+    convert_files(temp, ['.opf', '.ncx', '.xhtml', '.html', '.txt', '.css'])
 
     new_path = path.with_name(CC.convert(path.name))
     if (new_path == path):
