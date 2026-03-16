@@ -8,6 +8,9 @@ Easy script to convert Simplified Chinese epubs to Taiwan Traditional Chinese
 
 自己寫一個最快。
 
+## Web version
+網頁版： https://hungte.github.io/epub-s2tw/
+
 ## Depenedncy
 
 - Python 3.9+
