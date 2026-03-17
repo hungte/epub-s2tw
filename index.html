@@ -2,126 +2,21 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <link rel="manifest" href="manifest.json">
+    <title>EPUB 簡轉繁工具 (無伺服器版)</title>
+
     <meta name="theme-color" content="#007bff">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0,
+                                   maximum-scale=1.0, user-scalable=no">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="EPUB轉繁">
 
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
     <link rel="apple-touch-icon" href="icon-180.png">
-    <title>EPUB 簡轉繁工具 (無伺服器版)</title>
-    <style>
-        :root { --primary: #007bff; --bg: #f4f7f6; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
-        .card { background: white; padding: 2rem; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center; width: 85%; max-width: 400px; margin-top: 15vh; }
-        .install-guide {
-            display: none; /* 預設隱藏 */
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: #333; color: white; padding: 12px 20px; border-radius: 50px;
-            font-size: 0.9rem; width: 80%; max-width: 350px; z-index: 100;
-        }
-        @media (display-mode: standalone) { .install-guide { display: none !important; } }
 
-        h1 { font-size: 1.5rem; color: #333; }
-        #status { color: #666; margin: 1rem 0; font-size: 0.9rem; }
-        .btn { background: var(--primary); color: white; border: none; padding: 14px 28px; border-radius: 8px; cursor: pointer; font-size: 1rem; width: 100%; transition: 0.2s; }
-        .btn:disabled { background: #ccc; }
-        .copyright { text-align: right; font-style: italic; font-size: 0.8rem;}
-    </style>
-    <!-- Python script should not be executed by web pages. -->
-    <script type='text/python' id='epub_s2tw'>
+    <script type="text/javascript" src="app.js" defer></script>
 
-import zipfile
-import io
-import os
-import re
-import tempfile
-from opencc import OpenCC
-
-# Imported variables: epub_v2h, epub_bytes
-
-CSS_PATTERN = re.compile(r'[-a-z]*writing-mode:\s*vertical-rl\s*;')
-OPF_PATTERN = re.compile(r'page-progression-direction\s*=\s*"rtl"')
-CONVERT_EXTS = ('.html', '.xhtml', '.opf', '.ncx', '.txt', '.css')
-V2H = epub_v2h
-print('V2H: ', V2H);
-
-
-def convert_css(s):
-    if not V2H:
-        return s
-    return CSS_PATTERN.sub('', s)
-
-
-def convert(s, name):
-    if name.endswith('.css'):
-        return convert_css(s)
-    if V2H and name.endswith('.opf'):
-        s = OPF_PATTERN.sub('', s)
-    return cc.convert(s)
-
-
-def process():
-    cc = OpenCC('s2t')
-    input_data = epub_bytes.to_py()
-    output_buffer = io.BytesIO()
-
-    with zipfile.ZipFile(io.BytesIO(input_data), 'r') as zin:
-        with zipfile.ZipFile(output_buffer, 'w', zipfile.ZIP_DEFLATED) as zout:
-            for item in zin.infolist():
-                content = zin.read(item.filename)
-                if item.filename.endswith(CONVERT_EXTS):
-                    try:
-                        text = content.decode('utf-8')
-                        converted = convert(text, item.filename)
-                        zout.writestr(item.filename, converted.encode('utf-8'))
-                        continue
-                    except:
-                        pass
-                zout.writestr(item.filename, content)
-
-    return output_buffer.getvalue()
-
-process()
-    </script>
-
-    <!-- worker script that should not be executed when loading. -->
-    <script id='worker_script' type='text/worker-script'>
-        importScripts("https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js");
-
-        let pyodide;
-        async function init() {
-            pyodide = await loadPyodide();
-            await pyodide.loadPackage("micropip");
-            const micropip = pyodide.pyimport("micropip");
-            await micropip.install("opencc-python-reimplemented");
-            self.postMessage({ type: 'READY' });
-        }
-
-        self.onmessage = async (e) => {
-            if (e.data.type === 'CONVERT') {
-                const { fileArrayBuffer, fileName, v2h, pythonCode } = e.data;
-
-                try {
-                    // 將 ArrayBuffer 轉為 Python 可讀的 bytes
-                    self.postMessage({ type: 'STATUS', msg: '正在處理中...' });
-
-                    pyodide.globals.set("epub_bytes", fileArrayBuffer);
-                    pyodide.globals.set("epub_v2h", v2h);
-
-                    const pyProxy = await pyodide.runPythonAsync(pythonCode);
-                    const finalData = pyProxy.toJs();
-                    pyProxy.destroy();
-                    const outputBytes = new Blob([finalData], { type: 'application/epub+zip' });
-                    self.postMessage({ type: 'DONE', data: outputBytes, name: fileName });
-                } catch (err) {
-                    self.postMessage({ type: 'ERROR', msg: err.toString() });
-                }
-            }
-        };
-
-        init();
     </script>
 </head>
 
@@ -131,7 +26,7 @@ process()
     <h1>EPUB 簡轉繁</h1>
     <p>無伺服器，檔案僅在本地處理。</p>
     <div id="status">正在初始化引擎...(初次需1-3分鐘)</div>
-    <input type="file" id="fileInput" accept=".epub" style="display:none">
+    <input type="file" id="fileInput" accept=".epub" class="hidden">
     <button class="btn" id="mainBtn" disabled>請稍候</button>
     <p>
         <input type="checkbox" id="chkV2H"/><label for="chkV2H">直書轉橫書</label>
@@ -143,6 +38,9 @@ process()
 </div>
 
 <div id="iosGuide" class="install-guide">
+    <button id="pwa-install-btn" class="install-button hidden">
+        <span class="icon">➕</span>安裝以供離線使用
+    </button>
     <div style="font-weight: bold; margin-bottom: 5px;">💡 離線使用:</div>
     <div style="font-size: 0.85rem; line-height: 1.4;">
         1. 點擊瀏覽器選單 <b>(...)</b> 或 <b>分享按鈕</b><br>
@@ -150,75 +48,6 @@ process()
     </div>
 </div>
 
-<script type='text/javascript'>
-
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js');
-    }
-
-    const mainBtn = document.getElementById('mainBtn');
-    const status = document.getElementById('status');
-    const fileInput = document.getElementById('fileInput');
-    const iosGuide = document.getElementById('iosGuide');
-
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    if (isIOS && !isStandalone) {
-        iosGuide.style.display = 'block';
-    }
-
-    // 建立 Web Worker
-    const worker = new Worker(URL.createObjectURL(new Blob([
-        document.getElementById('worker_script').textContent],
-        { type: 'text/javascript' })));
-
-    worker.onmessage = (e) => {
-        const type = e.data.type;
-        if (type === 'READY') {
-            status.textContent = "準備就緒";
-            mainBtn.disabled = false;
-            mainBtn.textContent = "選擇 EPUB 檔案";
-        } else if (type === 'DONE') {
-            const blob = new Blob([e.data.data], {type: 'application/epub+zip'});
-            const url = URL.createObjectURL(blob);
-            let a = document.createElement('a');
-            a.href = url;
-            a.download = e.data.name.replace('.epub', '_繁體.epub');
-            a.click();
-            status.textContent = "轉換完成！已自動下載";
-            mainBtn.disabled = false;
-            a = null;
-            URL.revokeObjectURL(url);
-        } else if (type === 'STATUS') {
-            status.textContent = e.data.msg;
-            mainBtn.disabled = true;
-        } else if (type === 'ERROR') {
-            status.textContent = '錯誤: ' + e.data.msg;
-            mainBtn.disabled = false;
-        }
-    };
-
-    mainBtn.onclick = () => fileInput.click();
-    fileInput.onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file)
-            return;
-        mainBtn.disabled = true;
-        status.textContent = '正在轉換，請勿關閉視窗...';
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            worker.postMessage({
-                type: 'CONVERT',
-                fileArrayBuffer: e.target.result,
-                fileName: file.name,
-                v2h: document.getElementById('chkV2H').checked,
-                pythonCode: document.getElementById('epub_s2tw').textContent,
-            });
-        };
-        reader.readAsArrayBuffer(file);
-    };
-</script>
 </body>
 </html>
-<!-- vim:et:sw=4
-  -->
+<!-- vim:et:set sw=4: -->
