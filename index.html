@@ -32,19 +32,34 @@
         <input type="checkbox" id="chkV2H"/><label for="chkV2H">直書轉橫書</label>
     </p>
     <p class='copyright'>
-     Created by: <a href="mailto:hungte@gmail.com">Hung-Te Lin</a>.<br/>
-     Source: github <a href="http://github.com/hungte/epub-s2tw/">hungte/epub-s2tw</a>.<br/>
+     Created by: <a target='_blank' href="http://csie.org/~piaip/">Hung-Te Lin</a>.<br/>
+     Source: github <a target='_blank' href="http://github.com/hungte/epub-s2tw/">hungte/epub-s2tw</a>.<br/>
     </p>
 </div>
 
-<div id="iosGuide" class="install-guide">
+<div id="installGuide" class="installGuideOverlay hidden">
+    <button class="close-btn" onclick="closeInstallGuide()">×</button>
+    <div style='text-align: center;'>
     <button id="pwa-install-btn" class="install-button hidden">
         <span class="icon">➕</span>安裝以供離線使用
     </button>
-    <div style="font-weight: bold; margin-bottom: 5px;">💡 離線使用:</div>
-    <div style="font-size: 0.85rem; line-height: 1.4;">
-        1. 點擊瀏覽器選單 <b>(...)</b> 或 <b>分享按鈕</b><br>
-        2. 選擇 <b>「加入主畫面」</b> (Add to Home Screen)
+    </div>
+    <div id="iosGuide" class="iosGuide hidden">
+      <h3>安裝至主畫面</h3>
+
+      <div id="guide-safari" class="guide-step hidden">
+        <p>1. 點擊下方的<strong>分享</strong>按鈕 <span class="icon-safari-share"></span></p>
+        <p>2. 向上捲動並選擇<strong>「加入主畫面」</strong></p>
+      </div>
+
+      <div id="guide-chrome" class="guide-step hidden">
+        <p>1. 點擊網址列右側的<strong>分享</strong>按鈕 <span class="icon-chrome-share"></span></p>
+        <p>2. 選擇<strong>「加入主畫面」</strong></p>
+      </div>
+
+      <div class="guide-footer">
+        <p>安裝後即可像 App 一樣離線使用</p>
+      </div>
     </div>
 </div>
 

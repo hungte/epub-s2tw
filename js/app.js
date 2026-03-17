@@ -1,7 +1,7 @@
 // Global Variables
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 let deferredPrompt;
+
+// Simple Utilities
 
 function show(e) {
     e.classList.toggle('hidden', false);
@@ -9,6 +9,87 @@ function show(e) {
 function hide(e) {
     e.classList.toggle('hidden', true);
 }
+
+// PWA Application
+
+function showIosGuide(ua) {
+    const iosGuide = document.getElementById('iosGuide');
+    const safariStep = document.getElementById('guide-safari');
+    const chromeStep = document.getElementById('guide-chrome');
+    if (ua.includes('CriOS')) {
+        show(chromeStep);
+    } else {
+        show(safariStep);
+    }
+    show(iosGuide);
+}
+
+function closeInstallGuide() {
+    const guide = document.getElementById('installGuide');
+    hide(guide);
+}
+
+async function initInstallGuide() {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+    if (isStandalone) {
+        console.log('Running in standalone mode');
+        return;
+    }
+
+    const guide = document.getElementById('installGuide');
+    const ua = window.navigator.userAgent;
+
+    let isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+
+    if (isIOS) {
+        showIosGuide(ua);
+        show(guide);
+        return;
+    }
+
+    const inst_btn = document.getElementById('pwa-install-btn');
+    if (!('onbeforeinstallprompt' in window)) {
+        // No WPA, and not iOS.
+        return;
+    }
+
+    // PWA installation
+    inst_btn.addEventListener('click', handleInstallClick);
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      show(inst_btn);
+      show(guide);
+    });
+}
+
+function handleInstallClick() {
+    if (!deferredPrompt)
+        return;
+    deferredPrompt.prompt();
+
+    deferredPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === 'accepted') {
+            console.log('User accepted the install prompt');
+        } else {
+            console.log('User dismissed the install prompt');
+        }
+            deferredPrompt = null;
+        });
+}
+
+// 修改之前的 showIosInstallInstructions 以顯示 HTML 元素
+function showIosInstallInstructions() {
+    const iosGuide = document.getElementById('ios-guide');
+    if (iosGuide) {
+        show(iosGuide);
+        setTimeout(() => { hide(iosGuide); }, 8000);
+    }
+}
+
+
+// Main Application
 
 async function getPythonCode() {
     try {
@@ -22,29 +103,17 @@ async function getPythonCode() {
 
 async function init() {
     if ('serviceWorker' in navigator) {
+        console.log('registered sw.js');
         navigator.serviceWorker.register('sw.js');
     }
 
     const mainBtn = document.getElementById('mainBtn');
     const status = document.getElementById('status');
     const fileInput = document.getElementById('fileInput');
-    const iosGuide = document.getElementById('iosGuide');
-
-    if (true) {// isIOS && !isStandalone) {
-        show(iosGuide);
-    }
-
-    // PWA installation
-    document.getElementById('pwa-install-btn').addEventListener('click', handleInstallClick);
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      showInstallPromotion();
-    });
-
 
     // 建立 Web Worker
     const worker = new Worker('worker.js');
+    console.log(worker);
 
     worker.onmessage = (e) => {
         const type = e.data.type;
@@ -52,6 +121,7 @@ async function init() {
             status.textContent = "準備就緒";
             mainBtn.disabled = false;
             mainBtn.textContent = "選擇 EPUB 檔案";
+            initInstallGuide();
         } else if (type === 'DONE') {
             const blob = new Blob([e.data.data], {type: 'application/epub+zip'});
             const url = URL.createObjectURL(blob);
@@ -94,40 +164,6 @@ async function init() {
         };
         reader.readAsArrayBuffer(file);
     };
-}
-
-
-function handleInstallClick() {
-  if (deferredPrompt) {
-    deferredPrompt.prompt();
-
-    deferredPrompt.userChoice.then((choiceResult) => {
-      if (choiceResult.outcome === 'accepted') {
-        console.log('User accepted the install prompt');
-      } else {
-        console.log('User dismissed the install prompt');
-      }
-      deferredPrompt = null;
-    });
-  } else if (isIOS()) {
-    showIosInstallInstructions();
-  }
-}
-
-function showInstallPromotion() {
-  const installBtn = document.getElementById('pwa-install-btn');
-  if (!isStandalone) {
-    show(installBtn);
-  }
-}
-
-// 修改之前的 showIosInstallInstructions 以顯示 HTML 元素
-function showIosInstallInstructions() {
-    const iosGuide = document.getElementById('ios-guide');
-    if (iosGuide) {
-        show(iosGuide);
-        setTimeout(() => { hide(iosGuide); }, 8000);
-    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
