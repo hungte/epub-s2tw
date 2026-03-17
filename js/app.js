@@ -93,7 +93,7 @@ function showIosInstallInstructions() {
 
 async function getPythonCode() {
     try {
-        const response = await fetch('epub-s2tw.py');
+        const response = await fetch('./epub-s2tw.py');
         const code = await response.text();
         return code;
     } catch (err) {
@@ -112,7 +112,7 @@ async function init() {
     const fileInput = document.getElementById('fileInput');
 
     // 建立 Web Worker
-    const worker = new Worker('/js/worker.js');
+    const worker = new Worker('./js/worker.js');
     console.log(worker);
 
     worker.onmessage = (e) => {
