@@ -4,16 +4,29 @@
     <meta charset="UTF-8">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#007bff">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="EPUB轉繁">
+    <link rel="apple-touch-icon" href="icon.png">
+
     <title>EPUB 簡轉繁工具 (無伺服器版)</title>
     <style>
+        :root { --primary: #007bff; --bg: #f4f7f6; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        .card { background: white; padding: 2rem; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center; width: 85%; max-width: 400px; margin-top: 15vh; }
+        .install-guide {
+            display: none; /* 預設隱藏 */
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: #333; color: white; padding: 12px 20px; border-radius: 50px;
+            font-size: 0.9rem; width: 80%; max-width: 350px; z-index: 100;
+        }
+        @media (display-mode: standalone) { .install-guide { display: none !important; } }
 
-	body { font-family: -apple-system, sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; width: 90%; max-width: 400px; }
         h1 { font-size: 1.5rem; color: #333; }
-        #status { color: #666; font-size: 0.9rem; margin: 1rem 0; }
-        .btn { background: #007bff; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 1rem; transition: 0.3s; }
-        .btn:disabled { background: #ccc; cursor: not-allowed; }
+        #status { color: #666; margin: 1rem 0; font-size: 0.9rem; }
+        .btn { background: var(--primary); color: white; border: none; padding: 14px 28px; border-radius: 8px; cursor: pointer; font-size: 1rem; width: 100%; transition: 0.2s; }
+        .btn:disabled { background: #ccc; }
         .copyright { text-align: right; font-style: italic; font-size: 0.8rem;}
     </style>
     <!-- Python script should not be executed by web pages. -->
@@ -113,83 +126,98 @@ process()
 </head>
 
 <body>
-    <div class="card">
-        <h1>EPUB 簡轉繁</h1>
-        <p>無伺服器，檔案僅在本地處理。</p>
-        <div id="status">正在載入 Python 引擎...(初次需1-3分鐘)</div>
-        <input type="file" id="fileInput" accept=".epub" style="display:none">
-        <button class="btn" id="mainBtn" disabled>請稍候</button>
-        <p>
-            <input type="checkbox" id="chkV2H"/><label for="chkV2H">直書轉橫書</label>
-        </p>
-        <p class='copyright'>
-         Created by: <a href="mailto:hungte@gmail.com">Hung-Te Lin</a>.<br/>
-         Source: github <a href="http://github.com/hungte/epub-s2tw/">hungte/epub-s2tw</a>.<br/>
-        </p>
+<div class="card">
+    <img src="icon.png" width="80" height="80" style="border-radius: 15px; margin-bottom: 1rem;">
+    <h1>EPUB 簡轉繁</h1>
+    <p>無伺服器，檔案僅在本地處理。</p>
+    <div id="status">正在初始化引擎...(初次需1-3分鐘)</div>
+    <input type="file" id="fileInput" accept=".epub" style="display:none">
+    <button class="btn" id="mainBtn" disabled>請稍候</button>
+    <p>
+        <input type="checkbox" id="chkV2H"/><label for="chkV2H">直書轉橫書</label>
+    </p>
+    <p class='copyright'>
+     Created by: <a href="mailto:hungte@gmail.com">Hung-Te Lin</a>.<br/>
+     Source: github <a href="http://github.com/hungte/epub-s2tw/">hungte/epub-s2tw</a>.<br/>
+    </p>
+</div>
+
+<div id="iosGuide" class="install-guide">
+    <div style="font-weight: bold; margin-bottom: 5px;">💡 離線使用:</div>
+    <div style="font-size: 0.85rem; line-height: 1.4;">
+        1. 點擊瀏覽器選單 <b>(...)</b> 或 <b>分享按鈕</b><br>
+        2. 選擇 <b>「加入主畫面」</b> (Add to Home Screen)
     </div>
+</div>
 
+<script type='text/javascript'>
 
-    <script type='text/javascript'>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js');
+    }
 
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
-        }
+    const mainBtn = document.getElementById('mainBtn');
+    const status = document.getElementById('status');
+    const fileInput = document.getElementById('fileInput');
+    const iosGuide = document.getElementById('iosGuide');
 
-        const mainBtn = document.getElementById('mainBtn');
-        const status = document.getElementById('status');
-        const fileInput = document.getElementById('fileInput');
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    if (isIOS && !isStandalone) {
+        iosGuide.style.display = 'block';
+    }
 
-        // 建立 Web Worker
-        const worker = new Worker(URL.createObjectURL(new Blob([
-            document.getElementById('worker_script').textContent],
-            { type: 'text/javascript' })));
+    // 建立 Web Worker
+    const worker = new Worker(URL.createObjectURL(new Blob([
+        document.getElementById('worker_script').textContent],
+        { type: 'text/javascript' })));
 
-        worker.onmessage = (e) => {
-            const type = e.data.type;
-            if (type === 'READY') {
-                status.textContent = "準備就緒";
-                mainBtn.disabled = false;
-                mainBtn.textContent = "選擇 EPUB 檔案";
-            } else if (type === 'DONE') {
-                const blob = new Blob([e.data.data], {type: 'application/epub+zip'});
-                const url = URL.createObjectURL(blob);
-                let a = document.createElement('a');
-                a.href = url;
-                a.download = e.data.name.replace('.epub', '_繁體.epub');
-                a.click();
-                status.textContent = "轉換完成！已自動下載";
-                mainBtn.disabled = false;
-                a = null;
-                URL.revokeObjectURL(url);
-            } else if (type === 'STATUS') {
-                status.textContent = e.data.msg;
-                mainBtn.disabled = true;
-            } else if (type === 'ERROR') {
-                status.textContent = '錯誤: ' + e.data.msg;
-                mainBtn.disabled = false;
-            }
-        };
-
-        mainBtn.onclick = () => fileInput.click();
-        fileInput.onchange = (e) => {
-            const file = e.target.files[0];
-            if (!file)
-                return;
+    worker.onmessage = (e) => {
+        const type = e.data.type;
+        if (type === 'READY') {
+            status.textContent = "準備就緒";
+            mainBtn.disabled = false;
+            mainBtn.textContent = "選擇 EPUB 檔案";
+        } else if (type === 'DONE') {
+            const blob = new Blob([e.data.data], {type: 'application/epub+zip'});
+            const url = URL.createObjectURL(blob);
+            let a = document.createElement('a');
+            a.href = url;
+            a.download = e.data.name.replace('.epub', '_繁體.epub');
+            a.click();
+            status.textContent = "轉換完成！已自動下載";
+            mainBtn.disabled = false;
+            a = null;
+            URL.revokeObjectURL(url);
+        } else if (type === 'STATUS') {
+            status.textContent = e.data.msg;
             mainBtn.disabled = true;
-            status.textContent = '正在轉換，請勿關閉視窗...';
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                worker.postMessage({
-                    type: 'CONVERT',
-                    fileArrayBuffer: e.target.result,
-                    fileName: file.name,
-                    v2h: document.getElementById('chkV2H').checked,
-                    pythonCode: document.getElementById('epub_s2tw').textContent,
-                });
-            };
-            reader.readAsArrayBuffer(file);
+        } else if (type === 'ERROR') {
+            status.textContent = '錯誤: ' + e.data.msg;
+            mainBtn.disabled = false;
+        }
+    };
+
+    mainBtn.onclick = () => fileInput.click();
+    fileInput.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file)
+            return;
+        mainBtn.disabled = true;
+        status.textContent = '正在轉換，請勿關閉視窗...';
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            worker.postMessage({
+                type: 'CONVERT',
+                fileArrayBuffer: e.target.result,
+                fileName: file.name,
+                v2h: document.getElementById('chkV2H').checked,
+                pythonCode: document.getElementById('epub_s2tw').textContent,
+            });
         };
-    </script>
+        reader.readAsArrayBuffer(file);
+    };
+</script>
 </body>
 </html>
 <!-- vim:et:sw=4
