@@ -59,9 +59,9 @@ async function initInstallGuide() {
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
-      show(inst_btn);
-      show(guide);
     });
+    show(inst_btn);
+    show(guide);
 }
 
 function handleInstallClick() {
