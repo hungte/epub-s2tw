@@ -20,20 +20,17 @@ CONVERT_EXTS = ('.html', '.xhtml', '.ncx', '.txt', OPF_EXT, CSS_EXT)
 # Global (and imported) Configs
 V2H = False
 CC = OpenCC('s2t')
-CC_EXT = 'tw'
-
-
-def convert_css(s):
-    if not V2H:
-        return s
-    return CSS_PATTERN.sub('', s)
+CC_EXT = '.cht'
 
 
 def convert_content(cc, s, name):
-    if name.endswith(CSS_EXT):
-        return convert_css(s)
-    if V2H and name.endswith(OPF_EXT):
-        s = OPF_PATTERN.sub('', s)
+    if V2H:
+        if name.endswith(CSS_EXT):
+            print('Converted V2H - css')
+            return CSS_PATTERN.sub('', s)
+        if name.endswith(OPF_EXT):
+            print('Converted V2H - OPF')
+            s = OPF_PATTERN.sub('', s)
     return cc.convert(s)
 
 
@@ -62,6 +59,7 @@ def convert_archive(cc, source, output):
 
 def web_main():
     V2H = epub_v2h
+    print(f'web_main started, V2H={V2H}')
     return convert_archive(
                 CC, io.BytesIO(epub_bytes.to_py()),
                 io.BytesIO()).getvalue()
@@ -75,7 +73,7 @@ def main(prog, argv):
         path = Path(p)
         cht_name = CC.convert(path.name)
         if path.name == cht_name:
-            cht_name = f'{path.stem}.cht{path.suffix}'
+            cht_name = f'{path.stem}{CC_EXT}{path.suffix}'
         output = path.with_name(cht_name)
         print(f'Processing {path} -> {output}...')
         convert_archive(CC, path, output)

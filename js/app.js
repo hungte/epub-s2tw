@@ -75,6 +75,7 @@ async function init() {
     mainBtn.onclick = () => fileInput.click();
     let pythonCode = await getPythonCode();
 
+    /* Bug: if the user selects the same file, that won't trigger onchange. */
     fileInput.onchange = (e) => {
         const file = e.target.files[0];
         if (!file)
