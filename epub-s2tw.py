@@ -3,21 +3,24 @@
 # Convert CHS epub files to CHT (TW).
 # Author: Hung-Te Lin <hungte@gmail.com>
 
-import os
+import io
 import re
-import shutil
 import sys
-import tempfile
+import zipfile
 from pathlib import Path
 from opencc import OpenCC
 
 
-# Change this to different locales if you need.
-CC = OpenCC('s2tw')
+CSS_EXT = '.css'
+OPF_EXT = '.opf'
+CSS_PATTERN = re.compile(r'[-a-z]*writing-mode:\s*vertical-rl\s*;')
+OPF_PATTERN = re.compile(r'page-progression-direction\s*=\s*"rtl"')
+CONVERT_EXTS = ('.html', '.xhtml', '.ncx', '.txt', OPF_EXT, CSS_EXT)
 
-CSS_PATTERN = re.compile(r'[-a-z]*writing-mode:\s*vertical-rl\s*;');
-OPF_PATTERN = re.compile(r'page-progression-direction\s*=\s*"rtl"');
-V2H = False # vertical to horizontal
+# Global (and imported) Configs
+V2H = False
+CC = OpenCC('s2t')
+CC_EXT = 'tw'
 
 
 def convert_css(s):
@@ -26,45 +29,42 @@ def convert_css(s):
     return CSS_PATTERN.sub('', s)
 
 
-def convert(s, name):
-    if name.suffix == '.css':
+def convert_content(cc, s, name):
+    if name.endswith(CSS_EXT):
         return convert_css(s)
-    if V2H and name.suffix == '.opf':
+    if V2H and name.endswith(OPF_EXT):
         s = OPF_PATTERN.sub('', s)
-    return CC.convert(s)
-
-def convert_file(path):
-    # Enable this for extra debug messages
-    # print(f' - {path}')
-    with open(path) as f:
-        src = f.read()
-    with open(path, 'w') as f:
-        f.write(convert(src, path))
+    return cc.convert(s)
 
 
-def convert_files(folder, exts):
-    for path in Path(folder).glob(r'**/*'):
-        if not path.suffix in exts:
-            continue
-        convert_file(path)
+def convert_entry(cc, content, name):
+    if not name.endswith(CONVERT_EXTS):
+        return content
+    try:
+        text = content.decode('utf-8')
+        converted = convert_content(cc, text, name)
+        return converted.encode('utf-8')
+    except:
+        print(f'warning: conversion failed at {name}')
+        pass
+    return content
 
 
-def convert_epub(epub_path, temp):
+def convert_archive(cc, source, output):
+    with zipfile.ZipFile(source, 'r') as zin:
+        with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as zout:
+            for item in zin.infolist():
+                content = zin.read(item.filename)
+                zout.writestr(item.filename,
+                    convert_entry(cc, content, item.filename))
+    return output
 
-    path = Path(epub_path)
-    print(f'Unpacking {path}...')
-    shutil.unpack_archive(path, temp, 'zip')
 
-    print(f'Converting {path}...')
-    convert_files(temp, ['.opf', '.ncx', '.xhtml', '.html', '.txt', '.css'])
-
-    new_path = path.with_name(CC.convert(path.name))
-    if (new_path == path):
-        print(f'WARNING: replacing the original epub: {path} !!!')
-
-    print(f'Repacking to {new_path}...')
-    new_archive = Path(shutil.make_archive(new_path, 'zip', temp))
-    new_archive.replace(new_path)
+def web_main():
+    V2H = epub_v2h
+    return convert_archive(
+                CC, io.BytesIO(epub_bytes.to_py()),
+                io.BytesIO()).getvalue()
 
 
 def main(prog, argv):
@@ -72,11 +72,26 @@ def main(prog, argv):
         exit(f'Usage: {prog} epub-file(s)...')
 
     for p in argv:
-        with tempfile.TemporaryDirectory('epubconv_') as temp:
-            convert_epub(p, temp)
+        path = Path(p)
+        cht_name = CC.convert(path.name)
+        if path.name == cht_name:
+            cht_name = f'{path.stem}.cht{path.suffix}'
+        output = path.with_name(cht_name)
+        print(f'Processing {path} -> {output}...')
+        convert_archive(CC, path, output)
 
 
-if __name__ == '__main__':
-    main(sys.argv[0], sys.argv[1:])
+def Main():
+    if sys.platform == 'emscripten':
+        # Pyodide / web
+        return web_main()
+    elif __name__ == '__main__':
+        # Command line
+        return main(sys.argv[0], sys.argv[1:])
+
+
+# Main() as the last return value for passing results to Pyodide.
+Main()
+
 
 # vim: et:sw=4

@@ -14,15 +14,17 @@ Easy script to convert Simplified Chinese epubs to Taiwan Traditional Chinese
 - 網頁版： https://hungte.github.io/epub-s2tw/
 - 同時支援 PWA (Progressive Web Application)
 
-## Depenedncy
+## Command line version
+
+### Depenedncy
 
 - Python 3.9+
 - pip3 install opencc-python-reimplemented
 
-## Usage
+### Usage
 
 `./epub-s2tw.py xxx.epub *.epub`
 
 The output will be using the Traditional Chinese file name (if the input file
-was using a Simplified Chinese file name), or overwrite the input file if it
-doesn't have any Simplified Chinese characters.
+was using a Simplified Chinese file name), or `*.cht.epub` if it doesn't have
+any Simplified Chinese characters.

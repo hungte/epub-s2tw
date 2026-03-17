@@ -12,7 +12,7 @@ function hide(e) {
 
 async function getPythonCode() {
     try {
-        const response = await fetch('epub-s2tw_web.py');
+        const response = await fetch('epub-s2tw.py');
         const code = await response.text();
         return code;
     } catch (err) {
@@ -40,7 +40,7 @@ async function init() {
       e.preventDefault();
       deferredPrompt = e;
       showInstallPromotion();
-    };
+    });
 
 
     // 建立 Web Worker

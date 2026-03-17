@@ -7,7 +7,7 @@ const ASSETS_TO_CACHE = [
   '/favicon.ico',
   '/js/app.js',
   '/js/worker.js',
-  '/epub-s2tw_web.py',
+  '/epub-s2tw.py',
   '/assets/icon.png',
   '/assets/icon-192.png',
   '/assets/icon-180.png',
