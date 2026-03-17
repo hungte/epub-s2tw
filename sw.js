@@ -2,9 +2,9 @@ const CACHE_NAME = 'epub-s2tw-pwa-cache-v1';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
-  '/js/app.js',
-  '/js/worker.js',
-  '/js/epub-s2tw_web.py',
+  '/app.js',
+  '/worker.js',
+  '/epub-s2tw_web.py',
   '/icon.png',
   '/icon-192.png',
   '/icon-180.png',
