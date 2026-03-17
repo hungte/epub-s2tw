@@ -112,7 +112,7 @@ async function init() {
     const fileInput = document.getElementById('fileInput');
 
     // 建立 Web Worker
-    const worker = new Worker('worker.js');
+    const worker = new Worker('/js/worker.js');
     console.log(worker);
 
     worker.onmessage = (e) => {
