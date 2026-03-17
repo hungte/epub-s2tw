@@ -4,7 +4,6 @@ const CACHE_NAME = 'epub-s2tw-pwa-cache-v1.1';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
-  '/favicon.ico',
   '/js/app.js',
   '/js/worker.js',
   '/epub-s2tw.py',
