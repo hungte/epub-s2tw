@@ -24,7 +24,20 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
+      console.log('開始快取資源...');
+
+      // 使用 map 產生多個 add 請求
+      const cachePromises = ASSETS_TO_CACHE.map((url) => {
+        return cache.add(url).catch((error) => {
+          // 如果某個檔案抓不到，印出警告但不讓整個安裝失敗
+          console.warn(`[SW] 快取失敗（跳過）: ${url}`, error);
+        });
+      });
+
+      return Promise.all(cachePromises);
+    }).then(() => {
+      console.log('[SW] 安裝完成，已跳過毀損資源');
+      return self.skipWaiting();
     })
   );
 });
