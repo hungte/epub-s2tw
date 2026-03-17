@@ -1,4 +1,3 @@
-
 // Global Variables
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
@@ -41,7 +40,7 @@ async function init() {
       e.preventDefault();
       deferredPrompt = e;
       showInstallPromotion();
-    });
+    };
 
 
     // 建立 Web Worker

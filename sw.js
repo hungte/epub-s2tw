@@ -1,14 +1,17 @@
+/* Service Worker for PWA. Must be in root folder. */
+
 const CACHE_NAME = 'epub-s2tw-pwa-cache-v1';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
-  '/app.js',
-  '/worker.js',
+  '/favicon.ico',
+  '/js/app.js',
+  '/js/worker.js',
   '/epub-s2tw_web.py',
-  '/icon.png',
-  '/icon-192.png',
-  '/icon-180.png',
-  '/style.css',
+  '/assets/icon.png',
+  '/assets/icon-192.png',
+  '/assets/icon-180.png',
+  '/assets/style.css',
   'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js',
   'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.asm.wasm',
   'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/python_stdlib.zip',
@@ -29,16 +32,19 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('fetch', (event) => {
   event.respondWith(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.match(event.request).then((cachedResponse) => {
-        const fetchedResponse = fetch(event.request).then((networkResponse) => {
-          if (networkResponse.status === 200) {
-            cache.put(event.request, networkResponse.clone());
-          }
-          return networkResponse;
-        }).catch(() => {
-        });
-        return cachedResponse || fetchedResponse;
+    caches.match(event.request).then((response) => {
+      return response || fetch(event.request).then((fetchResponse) => {
+        // 關鍵修正：只快取 http 或 https 的請求
+        const url = new URL(event.request.url);
+        if (url.protocol.startsWith('http')) {
+          return caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, fetchResponse.clone());
+            return fetchResponse;
+          });
+        }
+
+        // 如果是 chrome-extension 等，直接回傳不快取
+        return fetchResponse;
       });
     })
   );
