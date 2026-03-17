@@ -2,14 +2,17 @@
 Easy script to convert Simplified Chinese epubs to Taiwan Traditional Chinese
 
 - 殘体 epub 看了很礙眼。
-- Web based 有檔案大小的限制。
+- 直書 epub 更是難以閱讀。
+- iOS 上的 epub 簡轉繁幾乎都要付費。
 - 試了很多 epub converter 都各有各的問題。
+- 很多 epub 簡轉繁網站有檔案大小的限制或要廣告。
 - Calibre 很好用，可是每次操作都要按半天 plugins 很累。
 
 自己寫一個最快。
 
-## Web version
-網頁版： https://hungte.github.io/epub-s2tw/
+## Web & PWA version
+- 網頁版： https://hungte.github.io/epub-s2tw/
+- 同時支援 PWA (Progressive Web Application)
 
 ## Depenedncy
 
