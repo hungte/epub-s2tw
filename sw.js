@@ -1,15 +1,16 @@
-/* Service Worker for PWA. Must be in root folder. */
+/* Service Worker for PWA. Must be in root folder, and do not cache itself. */
 
-const CACHE_NAME = 'epub-s2tw-pwa-cache-v1.2';
+const CACHE_NAME = 'epub-s2tw-pwa-cache-v1.3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './js/app.js',
   './js/worker.js',
   './epub-s2tw.py',
-  './assets/icon.png',
-  './assets/icon-192.png',
+  './assets/favicon.ico',
   './assets/icon-180.png',
+  './assets/icon-192.png',
+  './assets/icon.png',
   './assets/style.css',
   'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js',
   'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.asm.wasm',
