@@ -56,18 +56,21 @@ async function initInstallGuide() {
 
     const inst_btn = document.getElementById('pwa-install-btn');
     if (!('onbeforeinstallprompt' in window)) {
-        // No WPA, and not iOS.
+        log('No WPA and not iOS - no PWA install prompt.');
         return;
     }
+
+    // Unfortunately PWA installation is broken and I don't know why.
+    // Some doc said it need to wait for 30s but I thought it used to work...
 
     // PWA installation
     inst_btn.addEventListener('click', handleInstallClick);
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
+      show(inst_btn);
+      show(guide);
     });
-    show(inst_btn);
-    show(guide);
 }
 
 function handleInstallClick() {

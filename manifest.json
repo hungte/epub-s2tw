@@ -1,6 +1,7 @@
 {
   "name": "EPUB 繁體轉換器",
   "short_name": "EPUB簡轉繁",
+  "description": "免費免廣告免伺服器，在瀏覽器端運作的 EPUB 簡轉繁工具。",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#ffffff",
