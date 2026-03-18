@@ -8,6 +8,7 @@ import re
 import sys
 import zipfile
 from pathlib import Path
+from types import SimpleNamespace
 from opencc import OpenCC
 
 
@@ -23,23 +24,23 @@ CC = OpenCC('s2t')
 CC_EXT = '.cht'
 
 
-def convert_content(cc, s, name):
-    if V2H:
+def convert_content(cfg, s, name):
+    if cfg.v2h:
         if name.endswith(CSS_EXT):
-            print('Converted V2H - css')
+            print(f'Converted V2H - {CSS_EXT}')
             return CSS_PATTERN.sub('', s)
         if name.endswith(OPF_EXT):
-            print('Converted V2H - OPF')
+            print(f'Converted V2H - {OPF_EXT}')
             s = OPF_PATTERN.sub('', s)
-    return cc(s)
+    return cfg.cc(s)
 
 
-def convert_entry(cc, content, name):
+def convert_entry(cfg, content, name):
     if not name.endswith(CONVERT_EXTS):
         return content
     try:
         text = content.decode('utf-8')
-        converted = convert_content(cc, text, name)
+        converted = convert_content(cfg, text, name)
         return converted.encode('utf-8')
     except:
         print(f'warning: conversion failed at {name}')
@@ -47,40 +48,43 @@ def convert_entry(cc, content, name):
     return content
 
 
-def convert_archive(cc, source, output):
+def convert_archive(cfg, source, output):
     with zipfile.ZipFile(source, 'r') as zin:
         with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as zout:
             for item in zin.infolist():
                 content = zin.read(item.filename)
                 zout.writestr(item.filename,
-                    convert_entry(cc, content, item.filename))
+                    convert_entry(cfg, content, item.filename))
     return output
 
 
 def web_main():
-    V2H = epub_v2h
-    cc = lambda x: x
+    cfg = SimpleNamespace()
+    cfg.cc = lambda x: x
+    cfg.v2h = epub_v2h
     if epub_cc:
-        cc = OpenCC(epub_cc).convert
-    print(f'web_main started, V2H={V2H}, CC={epub_cc}')
+        cfg.cc = OpenCC(epub_cc).convert
+    print(f'web_main started, V2H={cfg.v2h}, CC={epub_cc}')
     return convert_archive(
-                cc, io.BytesIO(epub_bytes.to_py()),
+                cfg, io.BytesIO(epub_bytes.to_py()),
                 io.BytesIO()).getvalue()
 
 
 def main(prog, argv):
     if len(argv) < 1:
         exit(f'Usage: {prog} epub-file(s)...')
-    cc = CC.convert
+    cfg = SimpleNamespace()
+    cfg.cc = CC.convert
+    cfg.v2h = V2H
 
     for p in argv:
         path = Path(p)
-        cc_name = cc(path.name)
+        cc_name = cfg.cc(path.name)
         if path.name == cc_name:
             cc_name = f'{path.stem}{CC_EXT}{path.suffix}'
         output = path.with_name(cc_name)
         print(f'Processing {path} -> {output}...')
-        convert_archive(cc, path, output)
+        convert_archive(cfg, path, output)
 
 
 def Main():
