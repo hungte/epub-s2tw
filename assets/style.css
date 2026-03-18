@@ -151,3 +151,67 @@ select:focus {
 }
 
 #swap-btn:hover { background: #f0f0f0; }
+/* 容器佈局：向右對齊 */
+.setting-item {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 10px 16px;
+  gap: 12px;
+  background: #ffffff;
+  border-bottom: 1px solid #f0f0f0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.setting-label {
+  font-size: 16px;
+  color: #333;
+  cursor: pointer;
+  user-select: none; /* 防止長按文字時被選取，這在 PWA 很重要 */
+}
+
+/* 隱藏原生 Checkbox */
+.switch-input {
+  display: none;
+}
+
+.switch-slider {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 22px;
+  background-color: #ccc;
+  border-radius: 20px;
+  transition: 0.3s;
+  cursor: pointer;
+}
+
+.switch-slider::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  background-color: white;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+  transition: 0.3s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* 點選後的狀態 (建議使用主題色) */
+.switch-input:checked + .switch-slider {
+  background-color: #007aff; /* iOS 藍 */
+}
+
+.switch-input:checked + .switch-slider::after {
+  transform: translateX(20px);
+}
+
+.setting-item:active {
+  background-color: #f9f9f9; /* 點擊時的底色回饋 */
+}
+
+.switch-slider:active::after {
+  width: 20px; /* 壓下去時圓點變長，模擬物理感 */
+}
