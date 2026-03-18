@@ -17,13 +17,14 @@ async function initWorker() {
 
 self.onmessage = async (e) => {
     if (e.data.type === 'CONVERT') {
-        const { fileArrayBuffer, fileName, v2h, pythonCode } = e.data;
+        const { fileArrayBuffer, fileName, v2h, cc, pythonCode } = e.data;
 
         try {
             self.postMessage({ type: 'STATUS', msg: '正在處理中...' });
 
             pyodide.globals.set("epub_bytes", fileArrayBuffer);
             pyodide.globals.set("epub_v2h", v2h);
+            pyodide.globals.set("epub_cc", cc);
 
             const pyProxy = await pyodide.runPythonAsync(pythonCode);
             const finalData = pyProxy.toJs();

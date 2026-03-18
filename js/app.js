@@ -146,8 +146,9 @@ async function initPythonWorker() {
             const blob = new Blob([e.data.data], {type: 'application/epub+zip'});
             const url = URL.createObjectURL(blob);
             let a = document.createElement('a');
+            const dest = getDestLangExt();
             a.href = url;
-            a.download = e.data.name.replace('.epub', '_繁體.epub');
+            a.download = e.data.name.replace('.epub', `${dest}.epub`);
             a.click();
             status.textContent = "轉換完成！已自動下載";
             mainBtn.disabled = false;
@@ -182,11 +183,57 @@ async function initPythonWorker() {
                 fileArrayBuffer: e.target.result,
                 fileName: file.name,
                 v2h: document.getElementById('chkV2H').checked,
+                cc: getOpenCCConfig(),
                 pythonCode,
             });
         };
         reader.readAsArrayBuffer(file);
     };
+}
+
+function initOptions() {
+    document.getElementById('swap-btn').onclick = () => {
+        const src = document.getElementById('src-lang');
+        const dest = document.getElementById('dest-lang');
+        const temp = src.value;
+        src.value = dest.value;
+        dest.value = temp;
+    };
+}
+
+function getDestLangExt() {
+    const dest = document.getElementById('dest-lang').value;
+
+    switch (dest) {
+        case 's':
+            return '.chs';
+        case 'tw':
+            return '.tw';
+        case 'hk':
+            return '.hk';
+        case 't':
+        default:
+            return '.cht';
+    }
+}
+
+function getOpenCCConfig() {
+    const src = document.getElementById('src-lang').value;
+    const dest = document.getElementById('dest-lang').value;
+
+    // 預設常見組合，如果來源目標相同則不轉換
+    if (src === dest) return null;
+
+    // OpenCC 命名規則通常是 [src]2[dest]
+    // 注意：某些組合需要手動對應，例如 s2twp 代表簡體轉台灣正體（含慣用語）
+    let config = `${src}2${dest}`;
+
+    // 特殊處理：台灣正體通常建議用 s2twp (帶詞彙修正)
+    if (src === 's' && dest === 'tw') config = 's2twp';
+    // if (src === 'tw' && dest === 's') config = 'tw2s';
+
+    console.log(`Selected OpenCC config: ${config}`);
+    return `${config}`;
 }
 
 function checkInAppBrowser() {
@@ -214,6 +261,7 @@ async function updateVersion() {
 async function init() {
     if (checkInAppBrowser())
         return;
+    initOptions();
     await initServiceWorker();
     updateVersion();
     await initPythonWorker();

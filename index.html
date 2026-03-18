@@ -36,9 +36,28 @@
     <div id="status">正在初始化引擎...(初次需1-3分鐘)</div>
     <input type="file" id="fileInput" accept=".epub" class="hidden">
     <button class="btn" id="mainBtn" disabled>請稍候</button>
-    <p>
-        <input type="checkbox" id="chkV2H"/><label for="chkV2H">直書轉橫書</label>
-    </p>
+    <div class="conversion-panel">
+        <div class="select-group">
+            <label for="src-lang">來源語言</label>
+            <select id="src-lang">
+                <option value="s" selected>簡體中文 (Simplified)</option>
+                <option value="t">繁體中文 (Traditional)</option>
+                <option value="tw">台灣正體 (TW Standard)</option>
+                <option value="hk">香港繁體 (HK Standard)</option>
+            </select>
+        </div>
+        <button id="swap-btn" type="button" title="交換方向">⇄</button>
+        <div class="select-group">
+            <label for="dest-lang">目標語言</label>
+            <select id="dest-lang">
+                <option value="t" selected>繁體中文 (Traditional)</option>
+                <option value="tw">台灣正體 (TW Standard)</option>
+                <option value="hk">香港繁體 (HK Standard)</option>
+                <option value="s">簡體中文 (Simplified)</option>
+            </select>
+        </div><br>
+    </div>
+    <input type="checkbox" id="chkV2H"/><label for="chkV2H">直書轉橫書</label>
     <p class='copyright'>
      Created by: <a target='_blank' href="http://www.csie.ntu.edu.tw/~piaip/">Hung-Te Lin</a>.<br/>
      Source: github <a target='_blank' href="http://github.com/hungte/epub-s2tw/">hungte/epub-s2tw</a><span id="version">.</span>

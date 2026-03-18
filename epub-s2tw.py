@@ -31,7 +31,7 @@ def convert_content(cc, s, name):
         if name.endswith(OPF_EXT):
             print('Converted V2H - OPF')
             s = OPF_PATTERN.sub('', s)
-    return cc.convert(s)
+    return cc(s)
 
 
 def convert_entry(cc, content, name):
@@ -59,24 +59,28 @@ def convert_archive(cc, source, output):
 
 def web_main():
     V2H = epub_v2h
-    print(f'web_main started, V2H={V2H}')
+    cc = lambda x: x
+    if epub_cc:
+        cc = OpenCC(epub_cc).convert
+    print(f'web_main started, V2H={V2H}, CC={epub_cc}')
     return convert_archive(
-                CC, io.BytesIO(epub_bytes.to_py()),
+                cc, io.BytesIO(epub_bytes.to_py()),
                 io.BytesIO()).getvalue()
 
 
 def main(prog, argv):
     if len(argv) < 1:
         exit(f'Usage: {prog} epub-file(s)...')
+    cc = CC.convert
 
     for p in argv:
         path = Path(p)
-        cht_name = CC.convert(path.name)
-        if path.name == cht_name:
-            cht_name = f'{path.stem}{CC_EXT}{path.suffix}'
-        output = path.with_name(cht_name)
+        cc_name = cc(path.name)
+        if path.name == cc_name:
+            cc_name = f'{path.stem}{CC_EXT}{path.suffix}'
+        output = path.with_name(cc_name)
         print(f'Processing {path} -> {output}...')
-        convert_archive(CC, path, output)
+        convert_archive(cc, path, output)
 
 
 def Main():
