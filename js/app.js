@@ -103,7 +103,6 @@ async function getPythonCode() {
 
 async function init() {
     if ('serviceWorker' in navigator) {
-        console.log('registered sw.js');
         navigator.serviceWorker.register('sw.js');
     }
 

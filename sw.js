@@ -25,19 +25,18 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('開始快取資源...');
+      console.log('[SW] Started caching resources...');
 
-      // 使用 map 產生多個 add 請求
+      // Create multiple `add` requests using map.
       const cachePromises = ASSETS_TO_CACHE.map((url) => {
         return cache.add(url).catch((error) => {
-          // 如果某個檔案抓不到，印出警告但不讓整個安裝失敗
-          console.warn(`[SW] 快取失敗（跳過）: ${url}`, error);
+          console.warn(`[SW] Failed (and skipped) on caching: ${url}`, error);
         });
       });
 
       return Promise.all(cachePromises);
     }).then(() => {
-      console.log('[SW] 安裝完成，已跳過毀損資源');
+      console.log('[SW] Install completed.');
       return self.skipWaiting();
     })
   );
@@ -47,7 +46,7 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((response) => {
       return response || fetch(event.request).then((fetchResponse) => {
-        // 關鍵修正：只快取 http 或 https 的請求
+	// Only cache http / https calls.
         const url = new URL(event.request.url);
         if (url.protocol.startsWith('http')) {
           return caches.open(CACHE_NAME).then((cache) => {
@@ -56,7 +55,7 @@ self.addEventListener('fetch', (event) => {
           });
         }
 
-        // 如果是 chrome-extension 等，直接回傳不快取
+	// Do not cache unknown URLs like chrome-extension://
         return fetchResponse;
       });
     })
