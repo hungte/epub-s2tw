@@ -204,10 +204,18 @@ function checkInAppBrowser() {
     return true;
 }
 
+async function updateVersion() {
+    const keys = await caches.keys();
+    const version = keys.find(key => key.startsWith('epub-s2tw')).split('-').at(-1);
+    if (version)
+        document.getElementById('version').textContent = ` ${version}`;
+}
+
 async function init() {
     if (checkInAppBrowser())
         return;
     await initServiceWorker();
+    updateVersion();
     await initPythonWorker();
 }
 
