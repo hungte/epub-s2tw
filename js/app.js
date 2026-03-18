@@ -13,6 +13,11 @@ function hide(e) {
 
 // PWA Application
 
+function isInAppBrowser() {
+    const ua = navigator.userAgent || navigator.vendor || window.opera;
+    return (ua.indexOf("FBAN") > -1) || (ua.indexOf("FBAV") > -1) || (ua.indexOf("Line") > -1);
+}
+
 function showIosGuide(ua) {
     const iosGuide = document.getElementById('iosGuide');
     const safariStep = document.getElementById('guide-safari');
@@ -122,9 +127,7 @@ function initServiceWorker() {
     });
 }
 
-async function init() {
-    initServiceWorker();
-
+async function initPythonWorker() {
     const mainBtn = document.getElementById('mainBtn');
     const status = document.getElementById('status');
     const fileInput = document.getElementById('fileInput');
@@ -163,9 +166,9 @@ async function init() {
         fileInput.value = '';
         fileInput.click();
     }
+
     let pythonCode = await getPythonCode();
 
-    /* Bug: if the user selects the same file, that won't trigger onchange. */
     fileInput.onchange = (e) => {
         const file = e.target.files[0];
         if (!file)
@@ -184,6 +187,28 @@ async function init() {
         };
         reader.readAsArrayBuffer(file);
     };
+}
+
+function checkInAppBrowser() {
+    if (!isInAppBrowser())
+        return false;
+
+    show(document.getElementById('app-shroud'));
+    hide(document.getElementById('mainUI'));
+
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    if (isAndroid) {
+        const currentUrl = window.location.href.replace(/https?:\/\//, "");
+        window.location.href = `intent://${currentUrl}#Intent;scheme=https;package=com.android.chrome;end`;
+    }
+    return true;
+}
+
+async function init() {
+    if (checkInAppBrowser())
+        return;
+    await initServiceWorker();
+    await initPythonWorker();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
