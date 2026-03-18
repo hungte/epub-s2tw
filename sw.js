@@ -18,10 +18,15 @@ const ASSETS_TO_CACHE = [
   'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.asm.wasm',
   'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/python_stdlib.zip',
   'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.asm.js',
-  // 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/micropip-0.5.0-py3-none-any.whl',
-  // 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/packaging-23.1-py3-none-any.whl',
-  // 'https://files.pythonhosted.org/packages/30/6b/055b7806f320cc8f2cdf23c5f70221c0dc1683fca9ffaf76dfc2ad4b91b6/opencc_python_reimplemented-0.1.7-py2.py3-none-any.whl',
 ];
+
+// Not used for now.
+const CDN_PACKAGES = [
+  'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/micropip-0.5.0-py3-none-any.whl',
+  'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/packaging-23.1-py3-none-any.whl',
+  'https://files.pythonhosted.org/packages/30/6b/055b7806f320cc8f2cdf23c5f70221c0dc1683fca9ffaf76dfc2ad4b91b6/opencc_python_reimplemented-0.1.7-py2.py3-none-any.whl',
+];
+
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
