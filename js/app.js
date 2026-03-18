@@ -1,5 +1,6 @@
 // Global Variables
 let deferredPrompt;
+const log = console.log
 
 // Simple Utilities
 
@@ -33,7 +34,7 @@ async function initInstallGuide() {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
     if (isStandalone) {
-        console.log('Running in standalone mode');
+        log('Running in standalone mode');
         return;
     }
 
@@ -71,9 +72,9 @@ function handleInstallClick() {
 
     deferredPrompt.userChoice.then((choiceResult) => {
         if (choiceResult.outcome === 'accepted') {
-            console.log('User accepted the install prompt');
+            log('User accepted the install prompt');
         } else {
-            console.log('User dismissed the install prompt');
+            log('User dismissed the install prompt');
         }
             deferredPrompt = null;
         });
@@ -101,10 +102,28 @@ async function getPythonCode() {
     }
 }
 
+function initServiceWorker() {
+    if (!('serviceWorker' in navigator))
+        return;
+    let refreshing = false;
+
+    // 1. 監聽控制權變更，當 SW skipWaiting 成功後會觸發
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing)
+            return;
+        log("SW: ready to reload...");
+        refreshing = true;
+        window.location.reload();
+    });
+
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .catch(err => console.error('SW 註冊失敗:', err));
+    });
+}
+
 async function init() {
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js');
-    }
+    initServiceWorker();
 
     const mainBtn = document.getElementById('mainBtn');
     const status = document.getElementById('status');
@@ -112,7 +131,6 @@ async function init() {
 
     // 建立 Web Worker
     const worker = new Worker('./js/worker.js');
-    console.log(worker);
 
     worker.onmessage = (e) => {
         const type = e.data.type;

@@ -1,5 +1,6 @@
 /* Service Worker for PWA. Must be in root folder, and do not cache itself. */
 
+
 const CACHE_NAME = 'epub-s2tw-pwa-cache-v1.3';
 const ASSETS_TO_CACHE = [
   './',
@@ -40,6 +41,20 @@ self.addEventListener('install', (event) => {
       return self.skipWaiting();
     })
   );
+});
+
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+	self.skipWaiting();
+    }
+});
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
+	caches.keys().then(keys => Promise.all(
+	    keys.map(key => key !== CACHE_NAME && caches.delete(key))
+	)).then(() => self.clients.claim())
+    );
 });
 
 self.addEventListener('fetch', (event) => {
