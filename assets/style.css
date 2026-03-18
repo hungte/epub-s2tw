@@ -96,12 +96,12 @@ h1 { font-size: 1.5rem; color: #333; }
 .conversion-panel {
     display: flex;
     align-items: flex-end;
-    gap: 12px;
+    gap: 6px;
     background: #f8f9fa;
-    padding: 16px;
+    padding: 8px;
     border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 }
 
 .select-group {

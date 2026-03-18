@@ -230,9 +230,11 @@ function getOpenCCConfig() {
     // 注意：某些組合需要手動對應，例如 s2twp 代表簡體轉台灣正體（含慣用語）
     let config = `${src}2${dest}`;
 
-    // 特殊處理：台灣正體通常建議用 s2twp (帶詞彙修正)
-    if (src === 's' && dest === 'tw') config = 's2twp';
-    // if (src === 'tw' && dest === 's') config = 'tw2s';
+    // The tw has special phrase fixes.
+    if (config === 's2tw')
+        config = 's2twp';
+    if (config === 'tw2s')
+        config = 'tw2sp';
 
     console.log(`Selected OpenCC config: ${config}`);
     return `${config}`;
