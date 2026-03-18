@@ -142,7 +142,10 @@ async function init() {
         }
     };
 
-    mainBtn.onclick = () => fileInput.click();
+    mainBtn.onclick = () => {
+        fileInput.value = '';
+        fileInput.click();
+    }
     let pythonCode = await getPythonCode();
 
     /* Bug: if the user selects the same file, that won't trigger onchange. */
