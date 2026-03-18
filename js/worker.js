@@ -1,11 +1,17 @@
 importScripts("https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js");
 
+// derived from:
+//   await pyodide.loadPackage("micropip");
+//   const micropip = pyodide.pyimport("micropip");
+//   await micropip.install("opencc-python-reimplemented");
+pkgs = [
+    "./packages/opencc_python_reimplemented-0.1.7-py2.py3-none-any.whl",
+];
+
 let pyodide;
 async function initWorker() {
     pyodide = await loadPyodide();
-    await pyodide.loadPackage("micropip");
-    const micropip = pyodide.pyimport("micropip");
-    await micropip.install("opencc-python-reimplemented");
+    await pyodide.loadPackage(pkgs);
     self.postMessage({ type: 'READY' });
 }
 
