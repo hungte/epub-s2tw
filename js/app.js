@@ -112,9 +112,11 @@ function initServiceWorker() {
         return;
     let refreshing = false;
 
+    const oldController = navigator.serviceWorker.controller;
+
     // 1. 監聽控制權變更，當 SW skipWaiting 成功後會觸發
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (refreshing)
+        if (refreshing || !oldController)
             return;
         log("SW: ready to reload...");
         refreshing = true;

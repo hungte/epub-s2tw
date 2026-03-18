@@ -1,7 +1,7 @@
 /* Service Worker for PWA. Must be in root folder, and do not cache itself. */
 
 
-const CACHE_NAME = 'epub-s2tw-v1.5';
+const CACHE_NAME = 'epub-s2tw-v1.6';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
