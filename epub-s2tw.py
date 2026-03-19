@@ -59,14 +59,12 @@ def convert_archive(cfg, source, output):
 
 
 def web_main():
-    cfg = SimpleNamespace()
-    cfg.cc = lambda x: x
-    cfg.v2h = epub_v2h
-    if epub_cc:
-        cfg.cc = OpenCC(epub_cc).convert
-    print(f'web_main started, V2H={cfg.v2h}, CC={epub_cc}')
+    cfg = web_params
+    cc_config = cfg.cc_config
+    cfg.cc = OpenCC(cc_config).convert if cc_config else lambda x: x
+    print(f'web_main started, v2h={cfg.v2h}, cc_config={cc_config}')
     return convert_archive(
-                cfg, io.BytesIO(epub_bytes.to_py()),
+                cfg, io.BytesIO(cfg.contents.to_py()),
                 io.BytesIO()).getvalue()
 
 

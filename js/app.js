@@ -186,10 +186,12 @@ async function initPythonWorker() {
         reader.onload = (e) => {
             worker.postMessage({
                 type: 'CONVERT',
-                fileArrayBuffer: e.target.result,
-                fileName: file.name,
-                v2h: document.getElementById('chkV2H').checked,
-                cc: getOpenCCConfig(),
+                params: {
+                    contents: e.target.result,
+                    name: file.name,
+                    v2h: document.getElementById('chkV2H').checked,
+                    cc_config: getOpenCCConfig(),
+                },
                 pythonCode,
             });
         };
@@ -261,7 +263,8 @@ function checkInAppBrowser() {
 
 async function updateVersion() {
     const keys = await caches.keys();
-    const version = keys.find(key => key.startsWith('epub-s2tw')).split('-').at(-1);
+    const key_ver = keys.find(key => key.startsWith('epub-s2tw')) || '';
+    const version = key_ver.split('-').at(-1);
     if (version)
         document.getElementById('version').textContent = ` ${version}`;
 }
