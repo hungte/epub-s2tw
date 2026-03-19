@@ -23,8 +23,9 @@ Easy script to convert Simplified Chinese epubs to Taiwan Traditional Chinese
 
 ### Usage
 
-`./epub-s2tw.py xxx.epub *.epub`
+`./epub-s2tw.py [-h] [-o OUT] [-c CC_CONFIG] [--v2h] xxx.epub *.epub`
 
-The output will be using the Traditional Chinese file name (if the input file
-was using a Simplified Chinese file name), or `*.cht.epub` if it doesn't have
-any Simplified Chinese characters.
+The usage is inspired by OpenCC. Use `-h` for more details.
+The output will be using the converted file name (e.g., changing all Simplified
+Chinese characters to Traditional Chinese if using s2t config), or `*.[config].epub`
+if the input and output will be the same file.
