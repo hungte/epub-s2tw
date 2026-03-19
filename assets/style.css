@@ -151,10 +151,10 @@ select:focus {
 }
 
 #swap-btn:hover { background: #f0f0f0; }
-/* 容器佈局：向右對齊 */
 .setting-item {
   display: flex;
-  justify-content: flex-end;
+  /* justify-content: flex-end;*/ /* 容器佈局：向右對齊 */
+  justify-content: space-between;
   align-items: center;
   padding: 10px 16px;
   gap: 12px;
@@ -214,4 +214,23 @@ select:focus {
 
 .switch-slider:active::after {
   width: 20px; /* 壓下去時圓點變長，模擬物理感 */
+}
+
+.setting-v2h {
+    display: flex;
+    align-items: center; /* 確保圖示與文字垂直置中 */
+    cursor: pointer;
+}
+
+.setting-v2h::before {
+    content: "";
+    display: inline-block;
+    width: 20px;  /* 配合 input 大小調整 */
+    height: 20px;
+    margin-right: 8px; /* 圖示與文字的間距 */
+    background-repeat: no-repeat;
+    background-size: contain;
+
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="4" fill="%23007bff" fill-opacity="0.1" stroke="%23007bff" stroke-width="2"/><g transform="translate(6, 6)" stroke="%23007bff" stroke-width="2.5" stroke-linecap="round"><line x1="0" y1="0" x2="0" y2="12" stroke-dasharray="3, 3.5"/><line x1="4" y1="0" x2="4" y2="12" stroke-dasharray="3, 3.5"/><line x1="8" y1="0" x2="8" y2="12" stroke-dasharray="3, 3.5"/><line x1="12" y1="0" x2="12" y2="12" stroke-dasharray="3, 3.5"/></g></svg>');
+
 }
