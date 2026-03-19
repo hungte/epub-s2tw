@@ -3,6 +3,7 @@
 # Convert CHS epub files to CHT (TW).
 # Author: Hung-Te Lin <hungte@gmail.com>
 
+import argparse
 import io
 import re
 import sys
@@ -21,7 +22,6 @@ CONVERT_EXTS = ('.html', '.xhtml', '.ncx', '.txt', OPF_EXT, CSS_EXT)
 # Global (and imported) Configs
 V2H = False
 CC = OpenCC('s2t')
-CC_EXT = '.cht'
 
 
 def convert_content(cfg, s, name):
@@ -32,7 +32,7 @@ def convert_content(cfg, s, name):
         if name.endswith(OPF_EXT):
             print(f'Converted V2H - {OPF_EXT}')
             s = OPF_PATTERN.sub('', s)
-    return cfg.cc(s)
+    return cfg.convert(s)
 
 
 def convert_entry(cfg, content, name):
@@ -58,30 +58,53 @@ def convert_archive(cfg, source, output):
     return output
 
 
+def setup_cc_convert(cfg, cc):
+    cfg.cc = cc
+    cfg.convert = OpenCC(cc).convert if cc else lambda x: x
+
+
 def web_main():
     cfg = web_params
-    cc_config = cfg.cc_config
-    cfg.cc = OpenCC(cc_config).convert if cc_config else lambda x: x
-    print(f'web_main started, v2h={cfg.v2h}, cc_config={cc_config}')
+    setup_cc_convert(cfg, cfg.cc_config)
+    print(f'web_main started, v2h={cfg.v2h}, cc_config={cfg.cc}')
     return convert_archive(
                 cfg, io.BytesIO(cfg.contents.to_py()),
                 io.BytesIO()).getvalue()
 
 
 def main(prog, argv):
-    if len(argv) < 1:
-        exit(f'Usage: {prog} epub-file(s)...')
-    cfg = SimpleNamespace()
-    cfg.cc = CC.convert
-    cfg.v2h = V2H
+    parser = argparse.ArgumentParser(
+        description="EPUB 簡繁轉換工具 (參考 OpenCC 語法)",
+        formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument( 'inputs', metavar='INPUT', nargs='+',
+        help='一個或多個輸入的 EPUB 檔案路徑')
+    parser.add_argument( '-o', '--output', metavar='<output>',
+        help='單一輸入且結尾為 .epub 時為輸出檔名，否則為輸出目錄', default='.')
+    parser.add_argument( '-c', '--config', metavar='<cc>',
+        help='轉換設定 (例如: s2t, t2twp)\n'
+             's2t: 簡體 -> 繁體\n'
+             's2twp: 簡體 -> 台灣正體 (含詞彙修正)', default='s2t')
+    parser.add_argument( '-V', '--v2h', metavar='<v2h>',
+        help='直書轉橫書\n', default=False)
+    args = parser.parse_args()
 
-    for p in argv:
+    cfg = SimpleNamespace()
+    cfg.v2h = args.v2h
+    setup_cc_convert(cfg, args.config)
+    out_dir = Path(args.output)
+    out_path = ''
+
+    if len(args.inputs) == 1 and args.output.endswith('.epub'):
+        out_dir = ''
+        out_path = args.output
+
+    for p in args.inputs:
         path = Path(p)
-        cc_name = cfg.cc(path.name)
-        if path.name == cc_name:
-            cc_name = f'{path.stem}{CC_EXT}{path.suffix}'
-        output = path.with_name(cc_name)
+        output = out_dir / Path(out_path or cfg.convert(path.name))
+        if output.resolve() == path.resolve():
+            output = output.with_name(f'{path.stem}{cfg.cc}{path.suffix}');
         print(f'Processing {path} -> {output}...')
+        output.parent.mkdir(parents=True, exist_ok=True)
         convert_archive(cfg, path, output)
 
 
