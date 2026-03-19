@@ -60,12 +60,13 @@ async function initInstallGuide() {
         return;
     }
 
-    // Unfortunately PWA installation is broken and I don't know why.
-    // Some doc said it need to wait for 30s but I thought it used to work...
+    // Unfortunately beforeinstallprompt was never triggered.
+    // Some docs said it need to wait for 30s but I thought it used to work...
 
     // PWA installation
     inst_btn.addEventListener('click', handleInstallClick);
     window.addEventListener('beforeinstallprompt', (e) => {
+      log('Event beforeinstallprompt was triggered!');
       e.preventDefault();
       deferredPrompt = e;
       show(inst_btn);
