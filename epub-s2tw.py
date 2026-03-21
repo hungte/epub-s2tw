@@ -63,6 +63,23 @@ def setup_cc_convert(cfg, cc):
     cfg.convert = OpenCC(cc).convert if cc else lambda x: x
 
 
+def config_to_name(cc):
+    t = cc.split('2')[-1]
+    name = 'cht'
+
+    if t in ['twp', 'sp']:
+        t = t[:-1]
+
+    if len(t) > 1:
+        # tw, hk, jp
+        return t
+    elif t in ['s', 't']:
+        return f'ch{t}'
+
+    # Default
+    return 'cht'
+
+
 def web_main():
     cfg = web_params
     setup_cc_convert(cfg, cfg.cc_config)
@@ -102,7 +119,7 @@ def main(prog, argv):
         path = Path(p)
         output = out_dir / Path(out_path or cfg.convert(path.name))
         if output.resolve() == path.resolve():
-            output = output.with_name(f'{path.stem}{cfg.cc}{path.suffix}');
+            output = output.with_name(f'{path.stem}.{config_to_name(cfg.cc)}{path.suffix}');
         print(f'Processing {path} -> {output}...')
         output.parent.mkdir(parents=True, exist_ok=True)
         convert_archive(cfg, path, output)
